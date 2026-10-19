@@ -15,8 +15,8 @@ const CONFIG = {
   ENABLED_LANGS: ['en', 'nl', 'es', 'fr', 'it', 'de', 'da'],
 
   // ── Supabase PostgreSQL Credentials ──────────────────────────────────────
-  SUPABASE_URL: 'YOUR_SUPABASE_PROJECT_URL',
-  SUPABASE_ANON_KEY: 'YOUR_SUPABASE_ANON_KEY',
+  SUPABASE_URL: 'https://jmakkmmegompfymqgdtt.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_PUnv5qoxt0-TNd2MIc_A2w_unVyi5vm',
   SUPABASE_TABLE: 'quiz_submissions',
 
   // ── CSV Question Bank Paths ──────────────────────────────────────────────
