@@ -50,7 +50,6 @@
     .option-btn:hover {
       transform: translateY(-1px);
     }
-    /* Custom scrollbar for sidebar checklist */
     .custom-scroll::-webkit-scrollbar {
       width: 6px;
     }
@@ -81,8 +80,8 @@
         </div>
       </div>
 
-      <!-- Language Selector (7 Languages) -->
-      <div class="flex items-center space-x-2">
+      <!-- Language Selector Wrapper (Controlled by CONFIG.ENABLE_MULTILINGUAL in app.js) -->
+      <div id="lang-selector-wrapper" class="hidden items-center space-x-2">
         <label for="lang-selector" class="text-xs text-slate-300 hidden sm:inline">Language:</label>
         <select id="lang-selector" class="bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg px-3 py-1.5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer">
           <option value="en" class="text-slate-900">🇬🇧 English (EN)</option>
@@ -107,12 +106,13 @@
     <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-900/50 z-30 hidden lg:hidden"></div>
 
     <!-- Left Progress Sidebar (Visible during Quiz & Results) -->
-    <aside id="quiz-sidebar" class=" hidden w-80 bg-white border-r border-slate-200 flex-col shrink-0 fixed lg:static inset-y-0 left-0 z-40 lg:z-auto pt-16 lg:pt-0 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out">
+    <aside id="quiz-sidebar" class="hidden w-80 bg-white border-r border-slate-200 flex-col shrink-0 fixed lg:static inset-y-0 left-0 z-40 lg:z-auto pt-16 lg:pt-0 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out">
       <div class="p-5 border-b border-slate-100">
-        <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center justify-between mb-1">
           <h2 class="text-sm font-bold uppercase tracking-wider text-brand-navy">Your Progress</h2>
-          <span id="sidebar-progress-text" class="text-xs font-semibold text-brand-teal">0 / 29</span>
+          <span id="sidebar-progress-text" class="text-xs font-semibold text-brand-teal">0 / 0</span>
         </div>
+        <p id="sidebar-track-label" class="text-[11px] font-medium text-slate-500 mb-2">Track: End-user</p>
         <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
           <div id="sidebar-progress-bar" class="bg-brand-teal h-full transition-all duration-300 rounded-full" style="width: 0%"></div>
         </div>
@@ -134,7 +134,7 @@
       <div id="loading-state" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center my-8">
         <div class="inline-block w-10 h-10 border-4 border-brand-teal border-t-transparent rounded-full animate-spin mb-4"></div>
         <h2 class="text-lg font-semibold text-brand-navy">Loading Assessment Question Bank…</h2>
-        <p class="text-sm text-slate-500 mt-1">Parsing multilingual CSV data</p>
+        <p class="text-sm text-slate-500 mt-1">Parsing CSV question bank</p>
       </div>
 
       <!-- CSV Error / Local File Fallback State -->
@@ -165,27 +165,27 @@
             AI Literacy in Radiation Oncology
           </h2>
           <p class="mt-3 text-slate-600 leading-relaxed">
-            An interactive assessment of key concepts required to work with AI tools in radiation oncology <strong>safely</strong> — including foundational machine learning, clinical commissioning &amp; QA, and model development principles.
+            An interactive assessment of whether you can work with AI tools in radiation oncology <strong>safely</strong> — with a downloadable certificate and a personalised learning plan at the end.
           </p>
 
           <!-- 3 Feature Cards -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-              <div class="text-lg font-semibold text-brand-navy mb-1">🌍 7 Languages</div>
+              <div class="text-base font-bold text-brand-navy mb-1">🎯 Role-Tailored Tracks</div>
               <p class="text-xs text-slate-600 leading-relaxed">
-                Switch seamlessly between English, Dutch, Spanish, French, Italian, German, and Danish at any point during the quiz.
+                Choose between the foundational <strong>End-User</strong> assessment, the advanced <strong>Evaluator / Monitor</strong> track, or the combined set.
               </p>
             </div>
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-              <div class="text-lg font-semibold text-brand-navy mb-1">⚡ Auto-Saved Progress</div>
+              <div class="text-base font-bold text-brand-navy mb-1">⚡ Auto-Saved Progress</div>
               <p class="text-xs text-slate-600 leading-relaxed">
-                Includes 7 brief background questions (unscored) followed by 22 scored multiple-choice questions across 3 domains.
+                Every answer is saved automatically in your browser so you can pause and resume at any time without losing progress.
               </p>
             </div>
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-              <div class="text-lg font-semibold text-brand-navy mb-1">📄 Certificate &amp; Plan</div>
+              <div class="text-base font-bold text-brand-navy mb-1">📄 Certificate &amp; Plan</div>
               <p class="text-xs text-slate-600 leading-relaxed">
-                Pass mark <strong>65%</strong>. Instant domain breakdown, downloadable PDF certificate, and a tailored study summary.
+                Pass mark <strong>65%</strong>. Receive an instant domain breakdown, verification certificate, and study summary of any missed topics.
               </p>
             </div>
           </div>
@@ -203,7 +203,7 @@
               </p>
             </div>
             <div class="flex items-center gap-3 shrink-0">
-              <button id="btn-Resume" type="button" class="px-4 py-2.5 bg-brand-navy hover:bg-brand-teal text-white text-sm font-semibold rounded-xl shadow-sm transition">
+              <button id="btn-resume" type="button" class="px-4 py-2.5 bg-brand-navy hover:bg-brand-teal text-white text-sm font-semibold rounded-xl shadow-sm transition">
                 Resume Session →
               </button>
               <button id="btn-start-fresh" type="button" class="px-3.5 py-2.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-semibold rounded-xl transition">
@@ -213,9 +213,9 @@
           </div>
         </div>
 
-        <!-- Participant Registration & Privacy Form -->
+        <!-- Participant Registration, Track Selection & Privacy Form -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
-          <h3 class="text-lg font-bold text-brand-navy mb-4">Participant Details</h3>
+          <h3 class="text-lg font-bold text-brand-navy mb-4">Begin Your Assessment</h3>
 
           <!-- Collapsible Privacy Notice -->
           <details class="mb-6 group bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
@@ -225,28 +225,38 @@
             </summary>
             <div class="px-4 pb-4 pt-2 text-xs text-slate-600 space-y-2 border-t border-slate-200 leading-relaxed">
               <p>
-                To run this assessment we collect and store your <strong>name</strong> and <strong>email address</strong>, your <strong>background survey responses</strong>, the <strong>answers</strong> you provide, and your <strong>assessment scores</strong>.
+                To run this assessment we collect and store your <strong>name</strong> and <strong>email address</strong>, your <strong>selected track and background survey responses</strong>, the <strong>answers</strong> you provide, and your <strong>assessment results</strong>.
               </p>
               <p>
-                This information is used to deliver your assessment report, issue your PDF certificate and personalised study summary, and evaluate aggregate AI literacy trends in radiation oncology.
+                This information is used to deliver the assessment, issue your certificate and personalised learning plan, and evaluate aggregate clinical AI literacy trends.
               </p>
               <p>
-                Your progress is cached locally in your browser during the session and transmitted securely to our encrypted PostgreSQL database upon completion.
+                We keep this data for <strong>one year</strong> so that any issue with a certificate can be verified and put right.
               </p>
             </div>
           </details>
 
-          <form id="start-form" class="space-y-5" novalidate>
+          <form id="start-form" class="space-y-6" novalidate>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label for="input-name" class="block text-sm font-medium text-slate-700 mb-1">Full Name <span class="text-red-500">*</span></label>
-                <input id="input-name" type="text" required placeholder="Dr. Jane Doe" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-teal focus:border-brand-teal outline-none text-sm" />
-                <p class="text-[11px] text-slate-400 mt-1">Appears on your completion certificate.</p>
+                <input id="input-name" type="text" required placeholder="Enter your full name" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-teal focus:border-brand-teal outline-none text-sm" />
+                <p class="text-[11px] text-slate-400 mt-1">Printed on your completion certificate.</p>
               </div>
               <div>
                 <label for="input-email" class="block text-sm font-medium text-slate-700 mb-1">Email Address <span class="text-red-500">*</span></label>
-                <input id="input-email" type="email" required placeholder="you@hospital.org" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-teal focus:border-brand-teal outline-none text-sm" />
+                <input id="input-email" type="email" required placeholder="you@example.com" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-teal focus:border-brand-teal outline-none text-sm" />
                 <p class="text-[11px] text-slate-400 mt-1">Used to link your assessment record.</p>
+              </div>
+            </div>
+
+            <!-- Track Selector Radio Group -->
+            <div>
+              <label class="block text-sm font-semibold text-slate-800 mb-2.5">
+                Which assessment are you taking?
+              </label>
+              <div id="track-options-container" class="space-y-3" role="radiogroup" aria-label="Assessment Track">
+                <!-- Populated dynamically by app.js with topic counts and duration estimates -->
               </div>
             </div>
 
@@ -259,7 +269,7 @@
 
             <div id="form-error" class="hidden p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs font-medium text-red-700"></div>
 
-            <div class="pt-2">
+            <div class="pt-1">
               <button type="submit" class="w-full sm:w-auto px-8 py-3 bg-brand-navy hover:bg-brand-teal text-white font-semibold rounded-xl shadow-sm transition flex items-center justify-center gap-2">
                 <span>Begin Assessment</span>
                 <span>→</span>
@@ -276,16 +286,19 @@
 
         <!-- Top Mini Status Bar -->
         <div class="flex flex-wrap items-center justify-between gap-2 bg-white px-5 py-3.5 rounded-2xl shadow-sm border border-slate-200">
-          <div class="flex items-center gap-2.5">
+          <div class="flex items-center gap-2 flex-wrap">
             <span id="q-category-badge" class="px-3 py-1 rounded-full text-xs font-semibold bg-brand-light text-brand-navy">
               Category
+            </span>
+            <span id="q-topic-pill" class="hidden px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-sky-50 text-brand-teal border border-sky-200">
+              Topic
             </span>
             <span id="q-type-pill" class="px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600">
               Scored
             </span>
           </div>
           <div class="text-xs font-semibold text-slate-500" id="q-counter">
-            Question 1 of 29
+            Question 1 of 27
           </div>
         </div>
 
@@ -299,7 +312,7 @@
           <div id="options-container" class="space-y-3" role="radiogroup" aria-labelledby="q-text"></div>
 
           <p class="text-[11px] text-slate-400 mt-5 hidden sm:block">
-            💡 Tip: You can press keys <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-600">1</kbd> – <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-600">4</kbd> to select an option, and <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-600">Enter</kbd> or <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-600">→</kbd> to advance.
+            💡 Tip: Press keys <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-600">1</kbd> – <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-600">4</kbd> to select an answer, and <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-600">Enter</kbd> or <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-600">→</kbd> to advance.
           </p>
         </div>
 
@@ -343,21 +356,26 @@
           </div>
         </div>
 
+        <!-- Evaluator Track Companion Notice -->
+        <div id="evaluator-track-notice" class="hidden p-4 rounded-2xl bg-sky-50 border border-sky-200 text-xs sm:text-sm text-brand-navy">
+          ℹ️ This is the <strong>Evaluator / Monitor</strong> assessment. The certificate is complete only when held together with your <strong>End-User</strong> certificate.
+        </div>
+
         <!-- 3 Metric Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
             <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Overall Score</p>
             <p id="metric-score" class="text-3xl font-bold text-brand-navy mt-1">0%</p>
-            <p id="metric-raw" class="text-xs text-slate-500 mt-1">0 of 22 correct</p>
+            <p id="metric-raw" class="text-xs text-slate-500 mt-1">0 of 20 correct</p>
           </div>
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Pass Threshold</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Pass Mark</p>
             <p id="metric-passmark" class="text-3xl font-bold text-brand-teal mt-1">65%</p>
-            <p class="text-xs text-slate-500 mt-1">15 of 22 required to pass</p>
+            <p id="metric-pass-detail" class="text-xs text-slate-500 mt-1">Required to certify</p>
           </div>
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Scored Questions</p>
-            <p id="metric-completed" class="text-3xl font-bold text-slate-800 mt-1">22 / 22</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Topics Assessed</p>
+            <p id="metric-completed" class="text-3xl font-bold text-slate-800 mt-1">20 / 20</p>
             <p id="metric-cert-id" class="text-xs text-slate-500 mt-1">ID: —</p>
           </div>
         </div>
@@ -372,7 +390,7 @@
                 <span>🎓 Download Certificate (PDF)</span>
               </button>
               <button id="btn-download-study" type="button" class="px-5 py-2.5 rounded-xl bg-brand-light hover:bg-sky-100 text-brand-navy border border-brand-teal/30 text-sm font-semibold transition flex items-center gap-2">
-                <span>📘 Download Study Summary (PDF)</span>
+                <span>📘 Download Learning Plan (PDF)</span>
               </button>
               <button id="btn-download-json" type="button" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition" title="Export raw JSON backup of your results">
                 💾 JSON Backup
@@ -380,7 +398,7 @@
             </div>
           </div>
           <p id="cert-locked-msg" class="hidden mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3.5 py-2 rounded-lg">
-            ℹ️ A score of 65% or higher is required to unlock the completion certificate. Review your personalised study summary below and retake the assessment at any time.
+            ℹ️ A score of 65% or higher is required to unlock the completion certificate. Download your personalised learning plan PDF above to review the missed concepts.
           </p>
         </div>
 
@@ -405,12 +423,12 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
-              <h3 class="text-lg font-bold text-brand-navy">Question-by-Question Review</h3>
-              <p class="text-xs text-slate-500 mt-0.5">Click any question to compare your choice with the answer key.</p>
+              <h3 class="text-lg font-bold text-brand-navy">Results by Topic</h3>
+              <p class="text-xs text-slate-500 mt-0.5">Click any question to review your answer, the correct option, and the clinical takeaway.</p>
             </div>
             <div class="inline-flex rounded-xl bg-slate-100 p-1 self-start">
               <button id="filter-review-all" type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-brand-navy shadow-sm transition">
-                All Scored (22)
+                All Scored
               </button>
               <button id="filter-review-missed" type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">
                 Missed Only
