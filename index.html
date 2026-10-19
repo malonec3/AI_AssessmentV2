@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Literacy in Radiation Oncology — Assessment</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              navy: '#1a3a5c',
+              teal: '#2c6e9f',
+              light: '#f0f6fa',
+              accent: '#0ea5e9'
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Libraries via CDN: PapaParse, Supabase, canvas-confetti, jsPDF -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    .card-transition {
+      transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+    .card-enter {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    .option-btn {
+      transition: all 0.15s ease-in-out;
+    }
+    .option-btn:hover {
+      transform: translateY(-1px);
+    }
+    /* Custom scrollbar for sidebar checklist */
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-brand-navy text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <button id="mobile-sidebar-toggle" class="lg:hidden hidden p-2 rounded-lg text-slate-200 hover:bg-white/10 focus:outline-none" aria-label="Toggle Progress Sidebar">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <span class="text-2xl" role="img" aria-label="Brain icon">🧠</span>
+        <div>
+          <h1 class="font-bold text-base sm:text-lg leading-tight tracking-tight">RO AI Literacy Assessment</h1>
+          <p class="text-xs text-sky-200 hidden sm:block">Radiation Oncology Clinical AI Competency</p>
+        </div>
+      </div>
+
+      <!-- Language Selector (7 Languages) -->
+      <div class="flex items-center space-x-2">
+        <label for="lang-selector" class="text-xs text-slate-300 hidden sm:inline">Language:</label>
+        <select id="lang-selector" class="bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg px-3 py-1.5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer">
+          <option value="en" class="text-slate-900">🇬🇧 English (EN)</option>
+          <option value="nl" class="text-slate-900">🇳🇱 Nederlands (NL)</option>
+          <option value="es" class="text-slate-900">🇪🇸 Español (ES)</option>
+          <option value="fr" class="text-slate-900">🇫🇷 Français (FR)</option>
+          <option value="it" class="text-slate-900">🇮🇹 Italiano (IT)</option>
+          <option value="de" class="text-slate-900">🇩🇪 Deutsch (DE)</option>
+          <option value="da" class="text-slate-900">🇩🇰 Dansk (DA)</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <!-- Main Content Wrapper -->
+  <div class="flex-1 flex relative max-w-7xl w-full mx-auto">
+
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-900/50 z-30 hidden lg:hidden"></div>
+
+    <!-- Left Progress Sidebar (Visible during Quiz & Results) -->
+    <aside id="quiz-sidebar" class=" hidden w-80 bg-white border-r border-slate-200 flex-col shrink-0 fixed lg:static inset-y-0 left-0 z-40 lg:z-auto pt-16 lg:pt-0 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out">
+      <div class="p-5 border-b border-slate-100">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-brand-navy">Your Progress</h2>
+          <span id="sidebar-progress-text" class="text-xs font-semibold text-brand-teal">0 / 29</span>
+        </div>
+        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+          <div id="sidebar-progress-bar" class="bg-brand-teal h-full transition-all duration-300 rounded-full" style="width: 0%"></div>
+        </div>
+        <p class="mt-2.5 text-[11px] text-slate-500 flex items-center gap-2 flex-wrap">
+          <span>✅ Answered</span>
+          <span>🔵 Current</span>
+          <span>⚪ Remaining</span>
+        </p>
+      </div>
+
+      <!-- Grouped Question Checklist -->
+      <div id="sidebar-checklist" class="flex-1 overflow-y-auto custom-scroll p-4 space-y-5 text-sm"></div>
+    </aside>
+
+    <!-- Primary Stage Container -->
+    <main class="flex-1 px-4 sm:px-6 lg:px-10 py-8 w-full max-w-4xl mx-auto">
+
+      <!-- Loading State -->
+      <div id="loading-state" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center my-8">
+        <div class="inline-block w-10 h-10 border-4 border-brand-teal border-t-transparent rounded-full animate-spin mb-4"></div>
+        <h2 class="text-lg font-semibold text-brand-navy">Loading Assessment Question Bank…</h2>
+        <p class="text-sm text-slate-500 mt-1">Parsing multilingual CSV data</p>
+      </div>
+
+      <!-- CSV Error / Local File Fallback State -->
+      <div id="error-state" class="hidden bg-white rounded-2xl shadow-sm border border-red-200 p-8 my-8">
+        <div class="flex items-start space-x-4">
+          <div class="bg-red-100 text-red-700 p-3 rounded-xl shrink-0">⚠️</div>
+          <div class="flex-1">
+            <h2 class="text-lg font-bold text-slate-900">Could not auto-fetch the CSV file</h2>
+            <p id="error-message" class="text-sm text-slate-600 mt-1"></p>
+            <div class="mt-5 p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <p class="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Testing locally via file:// or custom CSV?</p>
+              <p class="text-xs text-slate-600 mb-3">Select your <code class="bg-slate-200 px-1.5 py-0.5 rounded">questions_multilingual.csv</code> file directly below to launch the assessment:</p>
+              <input type="file" id="csv-file-input" accept=".csv" class="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-navy file:text-white hover:file:bg-brand-teal cursor-pointer" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================ -->
+      <!-- STAGE 1: WELCOME & SETUP                                         -->
+      <!-- ================================================================ -->
+      <section id="stage-welcome" class="hidden space-y-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-light text-brand-teal text-xs font-semibold mb-4">
+            <span>Clinical AI Literacy &amp; Safety</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold text-brand-navy tracking-tight">
+            AI Literacy in Radiation Oncology
+          </h2>
+          <p class="mt-3 text-slate-600 leading-relaxed">
+            An interactive assessment of key concepts required to work with AI tools in radiation oncology <strong>safely</strong> — including foundational machine learning, clinical commissioning &amp; QA, and model development principles.
+          </p>
+
+          <!-- 3 Feature Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+              <div class="text-lg font-semibold text-brand-navy mb-1">🌍 7 Languages</div>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                Switch seamlessly between English, Dutch, Spanish, French, Italian, German, and Danish at any point during the quiz.
+              </p>
+            </div>
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+              <div class="text-lg font-semibold text-brand-navy mb-1">⚡ Auto-Saved Progress</div>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                Includes 7 brief background questions (unscored) followed by 22 scored multiple-choice questions across 3 domains.
+              </p>
+            </div>
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+              <div class="text-lg font-semibold text-brand-navy mb-1">📄 Certificate &amp; Plan</div>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                Pass mark <strong>65%</strong>. Instant domain breakdown, downloadable PDF certificate, and a tailored study summary.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto-Resume Banner (Shown if saved progress exists in localStorage) -->
+        <div id="resume-banner" class="hidden bg-amber-50 border border-amber-300 rounded-2xl p-5 sm:p-6 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 class="text-base font-bold text-amber-900 flex items-center gap-2">
+                <span>👋</span> Unfinished Session Detected
+              </h3>
+              <p id="resume-progress-text" class="text-sm text-amber-800 mt-1">
+                You have an in-progress assessment saved in your browser.
+              </p>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+              <button id="btn-Resume" type="button" class="px-4 py-2.5 bg-brand-navy hover:bg-brand-teal text-white text-sm font-semibold rounded-xl shadow-sm transition">
+                Resume Session →
+              </button>
+              <button id="btn-start-fresh" type="button" class="px-3.5 py-2.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-semibold rounded-xl transition">
+                Discard &amp; Start Fresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Participant Registration & Privacy Form -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+          <h3 class="text-lg font-bold text-brand-navy mb-4">Participant Details</h3>
+
+          <!-- Collapsible Privacy Notice -->
+          <details class="mb-6 group bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+            <summary class="px-4 py-3 text-sm font-semibold text-slate-700 cursor-pointer flex items-center justify-between hover:bg-slate-100/80 select-none">
+              <span>🔒 Privacy notice — how your data is used</span>
+              <span class="text-xs text-brand-teal group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div class="px-4 pb-4 pt-2 text-xs text-slate-600 space-y-2 border-t border-slate-200 leading-relaxed">
+              <p>
+                To run this assessment we collect and store your <strong>name</strong> and <strong>email address</strong>, your <strong>background survey responses</strong>, the <strong>answers</strong> you provide, and your <strong>assessment scores</strong>.
+              </p>
+              <p>
+                This information is used to deliver your assessment report, issue your PDF certificate and personalised study summary, and evaluate aggregate AI literacy trends in radiation oncology.
+              </p>
+              <p>
+                Your progress is cached locally in your browser during the session and transmitted securely to our encrypted PostgreSQL database upon completion.
+              </p>
+            </div>
+          </details>
+
+          <form id="start-form" class="space-y-5" novalidate>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="input-name" class="block text-sm font-medium text-slate-700 mb-1">Full Name <span class="text-red-500">*</span></label>
+                <input id="input-name" type="text" required placeholder="Dr. Jane Doe" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-teal focus:border-brand-teal outline-none text-sm" />
+                <p class="text-[11px] text-slate-400 mt-1">Appears on your completion certificate.</p>
+              </div>
+              <div>
+                <label for="input-email" class="block text-sm font-medium text-slate-700 mb-1">Email Address <span class="text-red-500">*</span></label>
+                <input id="input-email" type="email" required placeholder="you@hospital.org" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-teal focus:border-brand-teal outline-none text-sm" />
+                <p class="text-[11px] text-slate-400 mt-1">Used to link your assessment record.</p>
+              </div>
+            </div>
+
+            <div class="flex items-start space-x-3 pt-1">
+              <input id="input-consent" type="checkbox" required class="mt-1 h-4 w-4 rounded border-slate-300 text-brand-teal focus:ring-brand-teal cursor-pointer" />
+              <label for="input-consent" class="text-sm text-slate-700 cursor-pointer select-none">
+                I have read the privacy notice and consent to my data being stored as described.
+              </label>
+            </div>
+
+            <div id="form-error" class="hidden p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs font-medium text-red-700"></div>
+
+            <div class="pt-2">
+              <button type="submit" class="w-full sm:w-auto px-8 py-3 bg-brand-navy hover:bg-brand-teal text-white font-semibold rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+                <span>Begin Assessment</span>
+                <span>→</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!-- STAGE 2: GAMIFIED QUIZ VIEW                                      -->
+      <!-- ================================================================ -->
+      <section id="stage-quiz" class="hidden space-y-6">
+
+        <!-- Top Mini Status Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-white px-5 py-3.5 rounded-2xl shadow-sm border border-slate-200">
+          <div class="flex items-center gap-2.5">
+            <span id="q-category-badge" class="px-3 py-1 rounded-full text-xs font-semibold bg-brand-light text-brand-navy">
+              Category
+            </span>
+            <span id="q-type-pill" class="px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600">
+              Scored
+            </span>
+          </div>
+          <div class="text-xs font-semibold text-slate-500" id="q-counter">
+            Question 1 of 29
+          </div>
+        </div>
+
+        <!-- Question Card -->
+        <div id="question-card" class="card-transition bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+          <h2 id="q-text" class="text-lg sm:text-xl font-bold text-slate-900 leading-snug mb-6">
+            Question text goes here
+          </h2>
+
+          <!-- 4 Multiple Choice Option Buttons -->
+          <div id="options-container" class="space-y-3" role="radiogroup" aria-labelledby="q-text"></div>
+
+          <p class="text-[11px] text-slate-400 mt-5 hidden sm:block">
+            💡 Tip: You can press keys <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-600">1</kbd> – <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-600">4</kbd> to select an option, and <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-600">Enter</kbd> or <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-600">→</kbd> to advance.
+          </p>
+        </div>
+
+        <!-- Unanswered Warning Banner -->
+        <div id="unanswered-warning" class="hidden p-4 rounded-xl bg-amber-50 border border-amber-300 text-xs font-medium text-amber-900"></div>
+
+        <!-- Navigation Controls -->
+        <div class="flex items-center justify-between pt-2">
+          <button id="btn-prev" type="button" class="px-5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold transition disabled:opacity-40 disabled:pointer-events-none">
+            ← Previous
+          </button>
+
+          <button id="btn-next" type="button" class="px-6 py-2.5 rounded-xl bg-brand-navy hover:bg-brand-teal text-white text-sm font-semibold shadow-sm transition">
+            Next Question →
+          </button>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!-- STAGE 4: INTERACTIVE RESULTS, LEARNING PLAN & PDF CERTIFICATE    -->
+      <!-- ================================================================ -->
+      <section id="stage-results" class="hidden space-y-8">
+
+        <!-- Pass / Fail Headline Banner -->
+        <div id="results-banner" class="rounded-2xl p-6 sm:p-8 border shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span id="results-badge" class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2"></span>
+              <h2 id="results-title" class="text-2xl sm:text-3xl font-bold"></h2>
+              <p id="results-subtitle" class="text-sm mt-1 opacity-90"></p>
+            </div>
+            <!-- Database Sync Status Pill -->
+            <div class="flex flex-col items-start sm:items-end gap-2 shrink-0">
+              <span id="db-sync-badge" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/80 border border-slate-200 text-slate-700">
+                ⏳ Saving to database…
+              </span>
+              <button id="btn-retry-sync" type="button" class="hidden text-xs font-semibold underline text-brand-navy hover:text-brand-teal">
+                Retry database save
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Overall Score</p>
+            <p id="metric-score" class="text-3xl font-bold text-brand-navy mt-1">0%</p>
+            <p id="metric-raw" class="text-xs text-slate-500 mt-1">0 of 22 correct</p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Pass Threshold</p>
+            <p id="metric-passmark" class="text-3xl font-bold text-brand-teal mt-1">65%</p>
+            <p class="text-xs text-slate-500 mt-1">15 of 22 required to pass</p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Scored Questions</p>
+            <p id="metric-completed" class="text-3xl font-bold text-slate-800 mt-1">22 / 22</p>
+            <p id="metric-cert-id" class="text-xs text-slate-500 mt-1">ID: —</p>
+          </div>
+        </div>
+
+        <!-- Candidate Metadata & PDF Downloads Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div id="candidate-summary" class="space-y-1 text-sm text-slate-600"></div>
+
+            <div class="flex flex-wrap items-center gap-3">
+              <button id="btn-download-cert" type="button" class="px-5 py-2.5 rounded-xl bg-brand-navy hover:bg-brand-teal text-white text-sm font-semibold shadow-sm transition flex items-center gap-2 disabled:opacity-40 disabled:pointer-events-none">
+                <span>🎓 Download Certificate (PDF)</span>
+              </button>
+              <button id="btn-download-study" type="button" class="px-5 py-2.5 rounded-xl bg-brand-light hover:bg-sky-100 text-brand-navy border border-brand-teal/30 text-sm font-semibold transition flex items-center gap-2">
+                <span>📘 Download Study Summary (PDF)</span>
+              </button>
+              <button id="btn-download-json" type="button" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition" title="Export raw JSON backup of your results">
+                💾 JSON Backup
+              </button>
+            </div>
+          </div>
+          <p id="cert-locked-msg" class="hidden mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3.5 py-2 rounded-lg">
+            ℹ️ A score of 65% or higher is required to unlock the completion certificate. Review your personalised study summary below and retake the assessment at any time.
+          </p>
+        </div>
+
+        <!-- Performance by Domain -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+          <h3 class="text-lg font-bold text-brand-navy mb-4">Performance by Domain</h3>
+          <div id="domain-bars-container" class="space-y-4"></div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 pt-5 border-t border-slate-100 text-xs">
+            <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-emerald-900">
+              <span class="font-bold uppercase tracking-wider block mb-0.5 text-emerald-700">💪 Strongest Domain</span>
+              <span id="domain-strongest" class="font-medium text-sm">—</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-900">
+              <span class="font-bold uppercase tracking-wider block mb-0.5 text-amber-700">🎯 Priority Focus Area</span>
+              <span id="domain-weakest" class="font-medium text-sm">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Question-by-Question Expandable Review -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h3 class="text-lg font-bold text-brand-navy">Question-by-Question Review</h3>
+              <p class="text-xs text-slate-500 mt-0.5">Click any question to compare your choice with the answer key.</p>
+            </div>
+            <div class="inline-flex rounded-xl bg-slate-100 p-1 self-start">
+              <button id="filter-review-all" type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-brand-navy shadow-sm transition">
+                All Scored (22)
+              </button>
+              <button id="filter-review-missed" type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">
+                Missed Only
+              </button>
+            </div>
+          </div>
+
+          <div id="review-accordion-container" class="space-y-3"></div>
+        </div>
+
+        <!-- Start New Assessment Button -->
+        <div class="text-center pt-2 pb-8">
+          <button id="btn-restart" type="button" class="px-6 py-3 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-sm font-semibold shadow-sm transition">
+            ↻ Start New Assessment
+          </button>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Application Script -->
+  <script src="./app.js"></script>
+</body>
+</html>
