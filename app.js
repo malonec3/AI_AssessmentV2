@@ -253,7 +253,8 @@ function parseCSVContent(csvText) {
         return;
       }
 
-      allQuestions = parsed.sort((a, b) => a.id - b.id);
+      // Match the sidebar's category order, then retain question order within each category.
+      allQuestions = parsed.sort((a, b) => (a.category - b.category) || (a.id - b.id));
       document.getElementById('loading-state').classList.add('hidden');
       document.getElementById('error-state').classList.add('hidden');
 
