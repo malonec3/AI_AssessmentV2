@@ -22,6 +22,11 @@ const CONFIG = {
   // ── CSV Question Bank Paths ──────────────────────────────────────────────
   CSV_PATHS: ['./questions_multilingual.csv', './questions_multilingual (3).csv'],
 
+  // ── Question bank version ────────────────────────────────────────────────
+  // Change this whenever you edit the CSV, so every saved result records which
+  // wording the participant answered.
+  QUESTION_BANK_VERSION: '2026-10-23',
+
   // ── Scoring & Storage ────────────────────────────────────────────────────
   PASS_THRESHOLD: 0.65, // 65% required to pass
   DEFAULT_TRACK: 'end_user',
@@ -36,7 +41,7 @@ const TRACKS = {
     blurb: 'Core AI literacy for anyone using AI tools in the clinic.',
     certTitle: 'Certificate of AI Literacy — End-User',
     certNote: '',
-    certifiedLabel: 'AI End-User'
+    certifiedLabel: 'Safe AI End-User'
   },
   evaluator: {
     id: 'evaluator',
@@ -55,11 +60,25 @@ const TRACKS = {
       'Complete both the foundational End-user core and the advanced Evaluator / Monitor curriculum in a single sitting.',
     certTitle: 'Certificate of AI Literacy — Comprehensive (End-User & Evaluator)',
     certNote: '',
-    certifiedLabel: 'AI End-User & Evaluator'
+    certifiedLabel: 'Safe AI End-User & Evaluator'
+  },
+  // Course tracks: questions are chosen by a CSV column rather than by the
+  // "track" column. Put 1 in that column for each question to include.
+  // Background survey questions (category 0) are always included.
+  // To add another course later, copy this block, give it a new id and
+  // selectColumn, add a matching column to the CSV and add the id to TRACK_ORDER.
+  estro_ai: {
+    id: 'estro_ai',
+    label: 'ESTRO AI',
+    blurb: 'The question set selected for participants on the ESTRO AI course.',
+    certTitle: 'Certificate of AI Literacy — ESTRO AI',
+    certNote: '',
+    certifiedLabel: 'ESTRO AI',
+    selectColumn: 'estro_ai'
   }
 };
 
-const TRACK_ORDER = ['end_user', 'evaluator', 'full'];
+const TRACK_ORDER = ['end_user', 'evaluator', 'full', 'estro_ai'];
 
 const CATEGORIES = {
   0: {
@@ -111,6 +130,7 @@ function getInitialState() {
     },
     currentIndex: 0,
     answers: {}, // { [questionId]: selectedOptionNumber (1..4) }
+    helpOpened: {}, // { [questionId]: true } once the key-terms panel was opened
     milestonesShown: { q25: false, q50: false, q75: false },
     verificationId: generateVerificationId(),
     completedAt: null,
@@ -132,7 +152,18 @@ function generateVerificationId() {
  * Returns the filtered list of questions active for the chosen track.
  * Always includes Category 0 (background survey) + the track's scored questions.
  */
+function isFlagged(value) {
+  return ['1', 'true', 'yes', 'y', 'x'].includes(String(value ?? '').trim().toLowerCase());
+}
+
 function getActiveQuestions(track = state.track) {
+  const meta = TRACKS[track];
+  if (meta && meta.selectColumn) {
+    return allQuestions.filter(
+      (q) => q.category === 0 || q.correct_option === -1 || isFlagged(q.raw[meta.selectColumn])
+    );
+  }
+
   const hasExplicitTracks = allQuestions.some(
     (q) => q.track === 'end_user' || q.track === 'evaluator'
   );
@@ -253,8 +284,7 @@ function parseCSVContent(csvText) {
         return;
       }
 
-      // Match the sidebar's category order, then retain question order within each category.
-      allQuestions = parsed.sort((a, b) => (a.category - b.category) || (a.id - b.id));
+      allQuestions = parsed.sort((a, b) => a.id - b.id);
       document.getElementById('loading-state').classList.add('hidden');
       document.getElementById('error-state').classList.add('hidden');
 
@@ -284,6 +314,10 @@ function getLocalizedQuestion(q, lang = state.lang) {
     cleanText(row[`option_${idx}_${activeLang}`] || row[`option_${idx}_en`])
   );
   const explanation = cleanText(row[`explanation_${activeLang}`] || row.explanation_en || '');
+  const clinicalContext = cleanText(
+    row[`clinical_context_${activeLang}`] || row.clinical_context_en || ''
+  );
+  const helpTerms = parseHelpTerms(row[`help_terms_${activeLang}`] || row.help_terms_en || '');
 
   return {
     id: q.id,
@@ -294,8 +328,24 @@ function getLocalizedQuestion(q, lang = state.lang) {
     isScored: q.correct_option > 0,
     questionText,
     options,
-    explanation
+    explanation,
+    clinicalContext,
+    helpTerms
   };
+}
+
+/** "Term: definition | Term: definition" -> [{ term, definition }] */
+function parseHelpTerms(raw) {
+  return cleanText(raw)
+    .split('|')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => {
+      const i = s.indexOf(':');
+      return i > 0
+        ? { term: s.slice(0, i).trim(), definition: s.slice(i + 1).trim() }
+        : { term: s, definition: '' };
+    });
 }
 
 // ============================================================================
@@ -311,6 +361,13 @@ function renderTrackOptions() {
     const trackQuestions = getActiveQuestions(trackKey);
     const scoredCount = trackQuestions.filter((q) => q.correct_option > 0).length;
     const surveyCount = trackQuestions.filter((q) => q.correct_option === -1).length;
+
+    // A course track with no questions marked in its CSV column is hidden.
+    if (meta.selectColumn && scoredCount === 0) {
+      console.info(`Track "${trackKey}" hidden: no questions marked in CSV column "${meta.selectColumn}".`);
+      if (state.track === trackKey) state.track = CONFIG.DEFAULT_TRACK;
+      return;
+    }
 
     // Estimate duration similar to app.py (_track_caption)
     const lo = Math.max(5, Math.round((scoredCount * 0.6) / 5) * 5);
@@ -602,6 +659,8 @@ function renderCurrentQuestion() {
     optionsContainer.appendChild(btn);
   });
 
+  renderQuestionAside(q, loc);
+
   document.getElementById('btn-prev').disabled = state.currentIndex === 0;
   const nextBtn = document.getElementById('btn-next');
   const isLast = state.currentIndex === activeQuestions.length - 1;
@@ -609,6 +668,39 @@ function renderCurrentQuestion() {
   nextBtn.className = isLast
     ? 'px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition'
     : 'px-6 py-2.5 rounded-xl bg-brand-navy hover:bg-brand-teal text-white text-sm font-semibold shadow-sm transition';
+}
+
+function renderQuestionAside(q, loc) {
+  const grid = document.getElementById('quiz-grid');
+  const aside = document.getElementById('question-aside');
+  const hasContext = Boolean(loc.clinicalContext);
+  const hasHelp = loc.helpTerms.length > 0;
+
+  document.getElementById('context-box').classList.toggle('hidden', !hasContext);
+  document.getElementById('context-text').textContent = loc.clinicalContext;
+
+  document.getElementById('help-box').classList.toggle('hidden', !hasHelp);
+  document.getElementById('help-list').innerHTML = loc.helpTerms
+    .map(
+      (t) => `
+      <div>
+        <dt class="font-semibold text-brand-navy">${escapeHTML(t.term)}</dt>
+        <dd class="text-slate-600 mt-0.5 leading-relaxed">${escapeHTML(t.definition)}</dd>
+      </div>`
+    )
+    .join('');
+  setHelpOpen(Boolean(state.helpOpened && state.helpOpened[q.id]));
+
+  const showAside = hasContext || hasHelp;
+  aside.classList.toggle('hidden', !showAside);
+  grid.classList.toggle('xl:grid-cols-[minmax(0,1fr)_18rem]', showAside);
+}
+
+function setHelpOpen(open) {
+  const btn = document.getElementById('help-toggle');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  document.getElementById('help-list').classList.toggle('hidden', !open);
+  document.getElementById('help-chevron').classList.toggle('rotate-180', open);
 }
 
 function selectOption(questionId, optionNumber) {
@@ -681,6 +773,7 @@ function calculateAssessmentReport() {
   const demographics = {
     assessment_track: state.track,
     assessment_track_label: trackMeta.label,
+    question_bank_version: CONFIG.QUESTION_BANK_VERSION,
     verification_id: state.verificationId
   };
 
@@ -712,7 +805,8 @@ function calculateAssessmentReport() {
       track: q.track,
       selected_option: chosen,
       correct_option: q.correct_option,
-      is_correct: isCorrect
+      is_correct: isCorrect,
+      help_opened: Boolean(state.helpOpened && state.helpOpened[q.id])
     };
   });
 
@@ -1327,6 +1421,18 @@ function bindEvents() {
     showStage('quiz');
   });
 
+  document.getElementById('help-toggle').addEventListener('click', () => {
+    const q = getActiveQuestions()[state.currentIndex];
+    if (!q) return;
+    const open = document.getElementById('help-toggle').getAttribute('aria-expanded') !== 'true';
+    setHelpOpen(open);
+    if (open) {
+      if (!state.helpOpened) state.helpOpened = {};
+      state.helpOpened[q.id] = true;
+      saveStateToStorage();
+    }
+  });
+
   document.getElementById('btn-prev').addEventListener('click', () => {
     if (state.currentIndex > 0) {
       state.currentIndex -= 1;
@@ -1343,6 +1449,7 @@ function bindEvents() {
   document.addEventListener('keydown', (e) => {
     if (state.stage !== 'quiz') return;
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+    if (document.activeElement?.closest('#question-aside')) return;
 
     const activeQuestions = getActiveQuestions();
     const q = activeQuestions[state.currentIndex];

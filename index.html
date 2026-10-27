@@ -128,7 +128,7 @@
     </aside>
 
     <!-- Primary Stage Container -->
-    <main class="flex-1 px-4 sm:px-6 lg:px-10 py-8 w-full max-w-4xl mx-auto">
+    <main class="flex-1 px-4 sm:px-6 lg:px-10 py-8 w-full max-w-5xl mx-auto min-w-0">
 
       <!-- Loading State -->
       <div id="loading-state" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center my-8">
@@ -165,7 +165,7 @@
             AI Literacy in Radiation Oncology
           </h2>
           <p class="mt-3 text-slate-600 leading-relaxed">
-            An interactive assessment of AI based concepts and tools used in radiation oncology — with a downloadable certificate and a personalised learning plan at the end.
+            An interactive assessment of whether you can work with AI tools in radiation oncology <strong>safely</strong> — with a downloadable certificate and a personalised learning plan at the end.
           </p>
 
           <!-- 3 Feature Cards -->
@@ -173,13 +173,13 @@
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <div class="text-base font-bold text-brand-navy mb-1">🎯 Role-Tailored Tracks</div>
               <p class="text-xs text-slate-600 leading-relaxed">
-                Choose between the foundational <strong>End-User</strong> assessment, the advanced <strong>Evaluator / Monitor</strong> track, or the combined set.
+                Choose the foundational <strong>End-User</strong> assessment, the advanced <strong>Evaluator / Monitor</strong> track, the combined set, or a course-specific track.
               </p>
             </div>
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <div class="text-base font-bold text-brand-navy mb-1">⚡ Auto-Saved Progress</div>
               <p class="text-xs text-slate-600 leading-relaxed">
-                Every answer is saved automatically in your browser so you can pause and resume at any time without losing progress. If you mistakenly refresh, look for "Resume session" on the home screen.
+                Every answer is saved automatically in your browser so you can pause and resume at any time without losing progress.
               </p>
             </div>
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
@@ -302,8 +302,10 @@
           </div>
         </div>
 
+        <div id="quiz-grid" class="grid grid-cols-1 xl:grid-rows-[auto_1fr] gap-6 items-start">
+
         <!-- Question Card -->
-        <div id="question-card" class="card-transition bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+        <div id="question-card" class="card-transition bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 min-w-0 xl:col-start-1 xl:row-start-1">
           <h2 id="q-text" class="text-lg sm:text-xl font-bold text-slate-900 leading-snug mb-6">
             Question text goes here
           </h2>
@@ -316,6 +318,25 @@
           </p>
         </div>
 
+        <!-- Right-hand panel: clinical context + key terms -->
+        <aside id="question-aside" class="hidden space-y-4 xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:sticky xl:top-20" aria-label="Question support">
+          <div id="context-box" class="hidden bg-teal-50 border border-teal-200 rounded-2xl p-5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-teal-800 mb-2 flex items-center gap-2">
+              <span aria-hidden="true">🩺</span> Clinical context
+            </h3>
+            <p id="context-text" class="text-sm text-slate-700 leading-relaxed"></p>
+          </div>
+
+          <div id="help-box" class="hidden bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <button id="help-toggle" type="button" aria-expanded="false" aria-controls="help-list" class="w-full px-5 py-3.5 flex items-center justify-between text-left text-sm font-semibold text-brand-navy hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-teal">
+              <span class="flex items-center gap-2"><span aria-hidden="true">❓</span> Need help? Key terms</span>
+              <span id="help-chevron" class="text-xs text-brand-teal transition-transform" aria-hidden="true">▼</span>
+            </button>
+            <dl id="help-list" class="hidden px-5 pb-5 pt-1 space-y-3 text-sm border-t border-slate-100"></dl>
+          </div>
+        </aside>
+
+        <div class="space-y-4 min-w-0 xl:col-start-1 xl:row-start-2">
         <!-- Unanswered Warning Banner -->
         <div id="unanswered-warning" class="hidden p-4 rounded-xl bg-amber-50 border border-amber-300 text-xs font-medium text-amber-900"></div>
 
@@ -328,6 +349,9 @@
           <button id="btn-next" type="button" class="px-6 py-2.5 rounded-xl bg-brand-navy hover:bg-brand-teal text-white text-sm font-semibold shadow-sm transition">
             Next Question →
           </button>
+        </div>
+        </div>
+
         </div>
       </section>
 
