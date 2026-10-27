@@ -41,7 +41,7 @@ const TRACKS = {
     blurb: 'Core AI literacy for anyone using AI tools in the clinic.',
     certTitle: 'Certificate of AI Literacy — End-User',
     certNote: '',
-    certifiedLabel: 'Safe AI End-User'
+    certifiedLabel: 'AI End-User'
   },
   evaluator: {
     id: 'evaluator',
@@ -60,7 +60,7 @@ const TRACKS = {
       'Complete both the foundational End-user core and the advanced Evaluator / Monitor curriculum in a single sitting.',
     certTitle: 'Certificate of AI Literacy — Comprehensive (End-User & Evaluator)',
     certNote: '',
-    certifiedLabel: 'Safe AI End-User & Evaluator'
+    certifiedLabel: 'AI End-User & Evaluator'
   },
   // Course tracks: questions are chosen by a CSV column rather than by the
   // "track" column. Put 1 in that column for each question to include.
