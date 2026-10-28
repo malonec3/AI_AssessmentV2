@@ -25,7 +25,7 @@ const CONFIG = {
   // ── Question bank version ────────────────────────────────────────────────
   // Change this whenever you edit the CSV, so every saved result records which
   // wording the participant answered.
-  QUESTION_BANK_VERSION: '2026-10-23',
+  QUESTION_BANK_VERSION: '2026-10-28',
 
   // ── Scoring & Storage ────────────────────────────────────────────────────
   PASS_THRESHOLD: 0.65, // 65% required to pass
@@ -107,6 +107,9 @@ const CATEGORIES = {
   }
 };
 
+// Order in which sections are shown and numbered.
+const CATEGORY_ORDER = [0, 1, 2, 3];
+
 const SUPPORTED_LANGS = ['en', 'nl', 'es', 'fr', 'it', 'de', 'da'];
 
 // ============================================================================
@@ -156,11 +159,43 @@ function isFlagged(value) {
   return ['1', 'true', 'yes', 'y', 'x'].includes(String(value ?? '').trim().toLowerCase());
 }
 
+/**
+ * Unscored rows (correct_option -1) in a scored section (category 1-3) are
+ * end-of-section self-ratings, such as "how many answers were guesses?".
+ */
+function isSectionRating(q) {
+  return q.category !== 0 && q.correct_option === -1;
+}
+
+/**
+ * Puts questions in section order (CATEGORY_ORDER), then by id, with each
+ * section's self-rating last. Self-ratings for sections that have no scored
+ * questions in this track are dropped. Numbering follows this order.
+ */
+function orderQuestions(list) {
+  const rank = (c) => {
+    const i = CATEGORY_ORDER.indexOf(c);
+    return i === -1 ? CATEGORY_ORDER.length : i;
+  };
+  const scoredSections = new Set(list.filter((q) => q.correct_option > 0).map((q) => q.category));
+  return list
+    .filter((q) => !isSectionRating(q) || scoredSections.has(q.category))
+    .slice()
+    .sort(
+      (a, b) =>
+        rank(a.category) - rank(b.category) ||
+        Number(isSectionRating(a)) - Number(isSectionRating(b)) ||
+        a.id - b.id
+    );
+}
+
 function getActiveQuestions(track = state.track) {
   const meta = TRACKS[track];
   if (meta && meta.selectColumn) {
-    return allQuestions.filter(
-      (q) => q.category === 0 || q.correct_option === -1 || isFlagged(q.raw[meta.selectColumn])
+    return orderQuestions(
+      allQuestions.filter(
+        (q) => q.category === 0 || q.correct_option === -1 || isFlagged(q.raw[meta.selectColumn])
+      )
     );
   }
 
@@ -169,15 +204,17 @@ function getActiveQuestions(track = state.track) {
   );
 
   if (!hasExplicitTracks || track === 'full') {
-    return allQuestions;
+    return orderQuestions(allQuestions);
   }
 
-  return allQuestions.filter((q) => {
-    if (q.category === 0 || q.correct_option === -1 || q.track === 'all') {
-      return true;
-    }
-    return q.track === track;
-  });
+  return orderQuestions(
+    allQuestions.filter((q) => {
+      if (q.category === 0 || q.correct_option === -1 || q.track === 'all') {
+        return true;
+      }
+      return q.track === track;
+    })
+  );
 }
 
 // ============================================================================
@@ -523,7 +560,7 @@ function renderSidebar() {
   const container = document.getElementById('sidebar-checklist');
   container.innerHTML = '';
 
-  [0, 1, 2, 3].forEach((catId) => {
+  CATEGORY_ORDER.forEach((catId) => {
     const catQuestions = activeQuestions.filter((q) => q.category === catId);
     if (catQuestions.length === 0) return;
 
@@ -624,7 +661,7 @@ function renderCurrentQuestion() {
   } else {
     pillEl.className =
       'px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600';
-    pillEl.textContent = 'Background Survey (Unscored)';
+    pillEl.textContent = isSectionRating(q) ? 'Self-rating (Unscored)' : 'Background Survey (Unscored)';
   }
 
   document.getElementById('q-counter').textContent = `Question ${state.currentIndex + 1} of ${activeQuestions.length}`;
