@@ -887,7 +887,7 @@ function calculateAssessmentReport() {
     requiredRaw: Math.ceil(totalScored * CONFIG.PASS_THRESHOLD),
     scorePct,
     passed,
-    competencyLevel: passed ? trackMeta.certifiedLabel : 'Not Yet Ready',
+    competencyLevel: passed ? trackMeta.certifiedLabel : '',
     domainResults,
     strongestDomain: sortedDomains[0] || { name: '—', pct: 0 },
     weakestDomain: sortedDomains[sortedDomains.length - 1] || { name: '—', pct: 0 },
@@ -998,8 +998,8 @@ function renderResultsStage() {
       'rounded-2xl p-6 sm:p-8 border shadow-sm bg-amber-50 border-amber-200 text-amber-950';
     badge.className =
       'inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 bg-amber-200 text-amber-900';
-    badge.textContent = 'Result — Not Yet Ready';
-    title.textContent = 'Assessment Complete — FAIL';
+    badge.textContent = 'Result — Not passed';
+    title.textContent = 'Assessment Complete — not passed';
     subtitle.textContent =
       'You did not reach the 65% pass threshold on this sitting. Download your personalised learning plan below to review the topics you missed.';
   }
